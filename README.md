@@ -1,6 +1,6 @@
 # Execution Aware RAG Code Explainer
 
-Local full-stack application that indexes repositories, builds execution-aware graphs, stores embeddings, and generates explanations using local Ollama models.
+Local full-stack application that indexes repositories, builds execution-aware graphs, stores embeddings, and generates explanations using an OpenAI-compatible LLM endpoint.
 
 ## Project Structure
 
@@ -22,7 +22,8 @@ project/
 │   ├── milvus/
 │   ├── sqlite/
 │   └── repos/
-└── config.yaml
+├── .env
+└── .env.example
 ```
 
 ## Backend Setup
@@ -35,7 +36,14 @@ cd backend
 pip install -r requirements.txt
 ```
 
-3. Run backend:
+3. Set LLM API key:
+
+```bash
+copy .env.example .env
+# then edit .env and set MEGALLM_API_KEY
+```
+
+4. Run backend:
 
 ```bash
 uvicorn backend.main:app --reload --port 8000
@@ -57,7 +65,9 @@ set VITE_API_BASE_URL=http://localhost:8000
 
 ## Required Services
 
-- Ollama server with configured `llm_model` and `embedding_model`
+- OpenAI-compatible LLM endpoint configured in `.env` (`LLM_BASE_URL`, `LLM_MODEL`)
+- `MEGALLM_API_KEY` in `.env` (or key env var named by `LLM_API_KEY_ENV_VAR`)
+- Ollama server with configured `embedding_model`
 - Milvus instance reachable from backend
 
 ## API Endpoints

@@ -1,4 +1,6 @@
-from ollama import Client
+import os
+
+from openai import OpenAI
 
 from backend.config.settings import AppConfig
 
@@ -6,14 +8,30 @@ from backend.config.settings import AppConfig
 class ExplanationEngine:
     def __init__(self, config: AppConfig) -> None:
         self.config = config
-        self.client = Client(host=self.config.ollama.base_url)
+        api_key = os.getenv(self.config.llm.api_key_env_var, "")
+        self.client = OpenAI(
+            base_url=self.config.llm.base_url,
+            api_key=api_key,
+        )
 
     def explain(self, function_name: str, context: dict) -> dict:
         prompt = self._build_prompt(function_name, context)
         response_text = ""
         try:
-            response = self.client.generate(model=self.config.ollama.llm_model, prompt=prompt)
-            response_text = response.get("response", "")
+            response = self.client.chat.completions.create(
+                model=self.config.llm.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an execution-aware code explanation assistant.",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+            )
+            response_text = (response.choices[0].message.content or "").strip()
         except Exception:
             response_text = (
                 f"Execution-aware summary for {function_name}. "
@@ -33,12 +51,24 @@ class ExplanationEngine:
         prompt = (
             "Provide execution-aware explanation. "
             f"Language: {language}\n"
-            f"Code:\n{code[: self.config.ollama.max_context_chars]}"
+            f"Code:\n{code[: self.config.llm.max_context_chars]}"
         )
         response_text = ""
         try:
-            response = self.client.generate(model=self.config.ollama.llm_model, prompt=prompt)
-            response_text = response.get("response", "")
+            response = self.client.chat.completions.create(
+                model=self.config.llm.model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an execution-aware code explanation assistant.",
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+            )
+            response_text = (response.choices[0].message.content or "").strip()
         except Exception:
             response_text = (
                 "Snippet explanation fallback generated because LLM service is unavailable."

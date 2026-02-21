@@ -8,5 +8,6 @@ requests
 networkx
 pymilvus
 ollama
+openai
 tree-sitter
 tree-sitter-python
