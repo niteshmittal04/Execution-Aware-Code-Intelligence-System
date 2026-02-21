@@ -6,8 +6,9 @@ PyYAML
 gitpython
 requests
 networkx
-pymilvus
-ollama
+faiss-cpu
+numpy
+sentence-transformers
 openai
 tree-sitter
 tree-sitter-python

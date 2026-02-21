@@ -13,6 +13,10 @@ class ExplainSnippetRequest(BaseModel):
 
 class ExplainFunctionRequest(BaseModel):
     function_name: str
+    source_type: str | None = None
+    domain: str | None = None
+    difficulty_level: str | None = None
+    library: str | None = None
 
 
 class ExplanationResponse(BaseModel):

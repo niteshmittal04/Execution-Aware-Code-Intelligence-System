@@ -22,11 +22,28 @@ def index_repo(payload: IndexRepoRequest) -> dict:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
+@router.post("/seed_external_kb")
+def seed_external_kb() -> dict:
+    services = get_services()
+    try:
+        return services["indexing_service"].seed_external_knowledge_if_empty()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @router.post("/explain_function")
 def explain_function(payload: ExplainFunctionRequest) -> dict:
     services = get_services()
     function_name = payload.function_name
-    context = services["retriever"].retrieve(function_name)
+    context = services["retriever"].retrieve(
+        function_name,
+        {
+            "source_type": payload.source_type,
+            "domain": payload.domain,
+            "difficulty_level": payload.difficulty_level,
+            "library": payload.library,
+        },
+    )
     return services["llm_engine"].explain(function_name, context)
 
 

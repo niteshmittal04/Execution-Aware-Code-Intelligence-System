@@ -1,12 +1,12 @@
 from pathlib import Path
 
 from backend.config.settings import AppConfig
-from backend.embeddings.ollama_embedder import OllamaEmbedder
+from backend.embeddings.minilm_embedder import MiniLmEmbedder
 from backend.graph.sqlite_graph import SqliteGraphStore
 from backend.parser.tree_sitter_parser import TreeSitterCodeParser
 from backend.repository.cloner import RepositoryCloner
 from backend.retriever.external_indexer import ExternalKnowledgeIndexer
-from backend.vector.milvus_store import MilvusVectorStore
+from backend.vector.faiss_store import FaissVectorStore
 
 
 class IndexingService:
@@ -16,8 +16,8 @@ class IndexingService:
         cloner: RepositoryCloner,
         parser: TreeSitterCodeParser,
         graph_store: SqliteGraphStore,
-        embedder: OllamaEmbedder,
-        vector_store: MilvusVectorStore,
+        embedder: MiniLmEmbedder,
+        vector_store: FaissVectorStore,
         external_indexer: ExternalKnowledgeIndexer,
     ) -> None:
         self.config = config
@@ -31,6 +31,45 @@ class IndexingService:
     def index_repository(self, repo_url: str, branch: str | None = None) -> dict:
         repo_path = self.cloner.clone(repo_url, branch)
         return self.index_local_path(repo_path)
+
+    def seed_external_knowledge_if_empty(self) -> dict:
+        if not self.config.external_knowledge.enabled:
+            return {
+                "status": "skipped",
+                "reason": "external_knowledge_disabled",
+                "vector_count": self.vector_store.total_vectors(),
+            }
+
+        if not self.vector_store.is_empty():
+            return {
+                "status": "skipped",
+                "reason": "vector_db_not_empty",
+                "vector_count": self.vector_store.total_vectors(),
+            }
+
+        external_chunks = list(self.external_indexer.fetch_docs())
+        if not external_chunks:
+            return {
+                "status": "skipped",
+                "reason": "no_external_knowledge_rows",
+                "vector_count": self.vector_store.total_vectors(),
+            }
+
+        try:
+            external_embeddings = self.embedder.embed_batch(external_chunks)
+            self.vector_store.insert_embeddings(external_embeddings)
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "status": "failed",
+                "reason": "embedding_error",
+                "error": str(exc),
+                "vector_count": self.vector_store.total_vectors(),
+            }
+        return {
+            "status": "seeded",
+            "seeded_rows": len(external_embeddings),
+            "vector_count": self.vector_store.total_vectors(),
+        }
 
     def index_local_path(self, repo_path: Path) -> dict:
         nodes, edges, variables, chunks = self.parser.parse_repository(repo_path)

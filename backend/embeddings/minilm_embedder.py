@@ -1,25 +1,22 @@
-from ollama import Client
+from sentence_transformers import SentenceTransformer  # type: ignore
 
 from backend.config.settings import AppConfig
 from backend.utils.retry import retry_call
 
 
-class OllamaEmbedder:
+class MiniLmEmbedder:
     def __init__(self, config: AppConfig) -> None:
         self.config = config
-        self.client = Client(host=self.config.ollama.base_url)
+        self.model = SentenceTransformer(self.config.embeddings.model_name)
 
     def embed_text(self, text: str) -> list[float]:
         def _embed() -> list[float]:
-            try:
-                response = self.client.embed(model=self.config.ollama.embedding_model, input=text)
-                return response["embeddings"][0]
-            except Exception:  # noqa: BLE001
-                response = self.client.embeddings(
-                    model=self.config.ollama.embedding_model,
-                    prompt=text,
-                )
-                return response["embedding"]
+            vector = self.model.encode(
+                text,
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+            )
+            return vector.tolist()
 
         return retry_call(
             fn=_embed,

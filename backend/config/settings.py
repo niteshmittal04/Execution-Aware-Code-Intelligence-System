@@ -4,12 +4,8 @@ from pydantic import BaseModel
 from dotenv import load_dotenv
 
 
-class OllamaConfig(BaseModel):
-    base_url: str
-    llm_model: str
-    embedding_model: str
-    request_timeout_seconds: int
-    max_context_chars: int
+class EmbeddingsConfig(BaseModel):
+    model_name: str
 
 
 class LlmConfig(BaseModel):
@@ -19,10 +15,9 @@ class LlmConfig(BaseModel):
     max_context_chars: int
 
 
-class MilvusConfig(BaseModel):
-    host: str
-    port: int
-    collection: str
+class FaissConfig(BaseModel):
+    index_path: str
+    metadata_path: str
     search_limit: int
     search_metric: str
 
@@ -60,14 +55,15 @@ class RuntimeConfig(BaseModel):
 class ExternalKnowledgeConfig(BaseModel):
     enabled: bool
     docs_urls: list[str]
+    csv_path: str
     stackoverflow_tags: list[str]
     github_issue_repos: list[str]
 
 
 class AppConfig(BaseModel):
-    ollama: OllamaConfig
+    embeddings: EmbeddingsConfig
     llm: LlmConfig
-    milvus: MilvusConfig
+    faiss: FaissConfig
     sqlite: SqliteConfig
     indexing: IndexingConfig
     github: GithubConfig
@@ -104,12 +100,8 @@ def load_config(config_path: str | None = None) -> AppConfig:
     load_dotenv()
 
     return AppConfig(
-        ollama=OllamaConfig(
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
-            llm_model=os.getenv("OLLAMA_LLM_MODEL", "ministral-3:3b"),
-            embedding_model=os.getenv("OLLAMA_EMBEDDING_MODEL", "dengcao/Qwen3-Embedding-8B:Q8_0"),
-            request_timeout_seconds=_getenv_int("OLLAMA_REQUEST_TIMEOUT_SECONDS", 90),
-            max_context_chars=_getenv_int("OLLAMA_MAX_CONTEXT_CHARS", 32000),
+        embeddings=EmbeddingsConfig(
+            model_name=os.getenv("EMBEDDING_MODEL", "sentence-transformers/all-MiniLM-L6-v2"),
         ),
         llm=LlmConfig(
             base_url=os.getenv("LLM_BASE_URL", "https://ai.megallm.io/v1"),
@@ -117,12 +109,11 @@ def load_config(config_path: str | None = None) -> AppConfig:
             api_key_env_var=os.getenv("LLM_API_KEY_ENV_VAR", "MEGALLM_API_KEY"),
             max_context_chars=_getenv_int("LLM_MAX_CONTEXT_CHARS", 32000),
         ),
-        milvus=MilvusConfig(
-            host=os.getenv("MILVUS_HOST", "localhost"),
-            port=_getenv_int("MILVUS_PORT", 19530),
-            collection=os.getenv("MILVUS_COLLECTION", "execution_aware_chunks"),
-            search_limit=_getenv_int("MILVUS_SEARCH_LIMIT", 8),
-            search_metric=os.getenv("MILVUS_SEARCH_METRIC", "COSINE"),
+        faiss=FaissConfig(
+            index_path=os.getenv("FAISS_INDEX_PATH", "./data/faiss/execution_aware_chunks.faiss"),
+            metadata_path=os.getenv("FAISS_METADATA_PATH", "./data/faiss/execution_aware_chunks.json"),
+            search_limit=_getenv_int("FAISS_SEARCH_LIMIT", 8),
+            search_metric=os.getenv("FAISS_SEARCH_METRIC", "COSINE"),
         ),
         sqlite=SqliteConfig(
             path=os.getenv("SQLITE_PATH", "./data/sqlite/graph.db"),
@@ -152,6 +143,7 @@ def load_config(config_path: str | None = None) -> AppConfig:
         external_knowledge=ExternalKnowledgeConfig(
             enabled=_getenv_bool("EXTERNAL_KNOWLEDGE_ENABLED", False),
             docs_urls=_getenv_list("EXTERNAL_KNOWLEDGE_DOCS_URLS", []),
+            csv_path=os.getenv("EXTERNAL_KNOWLEDGE_CSV_PATH", "./rag_kb_dataset.csv"),
             stackoverflow_tags=_getenv_list("EXTERNAL_KNOWLEDGE_STACKOVERFLOW_TAGS", ["python"]),
             github_issue_repos=_getenv_list("EXTERNAL_KNOWLEDGE_GITHUB_ISSUE_REPOS", []),
         ),
