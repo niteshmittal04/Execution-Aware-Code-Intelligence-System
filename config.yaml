@@ -1,0 +1,46 @@
+ollama:
+  base_url: http://172.16.91.161:11434
+  llm_model: ministral-3:3b
+  embedding_model: dengcao/Qwen3-Embedding-8B:Q8_0
+  request_timeout_seconds: 90
+  max_context_chars: 32000
+
+milvus:
+  host: localhost
+  port: 19530
+  collection: execution_aware_chunks
+  search_limit: 8
+  search_metric: COSINE
+
+sqlite:
+  path: ./data/sqlite/graph.db
+
+indexing:
+  batch_size: 24
+  chunk_size: 1200
+  chunk_overlap: 120
+  max_file_bytes: 1048576
+  include_extensions:
+    - .py
+  max_workers: 4
+
+github:
+  clone_dir: ./data/repos
+  clone_timeout_seconds: 240
+
+graph:
+  traversal_depth: 3
+  graph_page_size: 100
+
+runtime:
+  request_timeout_seconds: 90
+  retry_attempts: 3
+  retry_backoff_seconds: 1.0
+  retry_backoff_multiplier: 2.0
+
+external_knowledge:
+  enabled: false
+  docs_urls: []
+  stackoverflow_tags:
+    - python
+  github_issue_repos: []
