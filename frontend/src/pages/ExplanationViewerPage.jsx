@@ -158,10 +158,12 @@ function ExplanationViewerPage() {
       <div className="grid-two">
         <Panel as="form" onSubmit={onExplainFunction} className="form-panel explanation-panel">
           <h3>Explain Function</h3>
-          <input
+          <textarea
+            className="explain-input"
             placeholder="module.function_name"
             value={functionName}
-            onChange={(event) => setFunctionName(event.target.value)}
+            onChange={(event) => setFunctionName(event.target.value.replace(/[\r\n]+/g, ''))}
+            rows={8}
             required
           />
           <Button type="submit" disabled={isFunctionLoading}>{isFunctionLoading ? 'Explaining...' : 'Explain Function'}</Button>
@@ -169,6 +171,7 @@ function ExplanationViewerPage() {
         <Panel as="form" onSubmit={onExplainSnippet} className="form-panel explanation-panel">
           <h3>Explain Snippet</h3>
           <textarea
+            className="explain-input"
             value={snippet}
             onChange={(event) => setSnippet(event.target.value)}
             rows={8}

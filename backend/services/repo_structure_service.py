@@ -82,16 +82,37 @@ class RepoStructureService:
 
         dirs_by_relpath: dict[str, dict] = {".": root}
 
-        for source_file in self.parser.iter_source_files(repo_path):
-            relative_path = source_file.relative_to(repo_path)
+        for repo_file in self._iter_repo_files(repo_path):
+            relative_path = repo_file.relative_to(repo_path)
             parent = relative_path.parent
             parent_node = self._ensure_directories(dirs_by_relpath, root, parent)
-            file_node = self._build_file_node(repo_path, source_file)
+            file_node = self._build_file_node(repo_path, repo_file)
             parent_node["children"].append(file_node)
 
         self._sort_tree(root)
         self.session_manager.store_structure(session_id, root)
         return root
+
+    def _iter_repo_files(self, repo_path: Path):
+        excluded_dirs = {
+            ".git",
+            "__pycache__",
+            "node_modules",
+            ".venv",
+            "venv",
+            "dist",
+            "build",
+        }
+
+        for path in repo_path.rglob("*"):
+            if not path.is_file():
+                continue
+
+            relative = path.relative_to(repo_path)
+            if any(part in excluded_dirs for part in relative.parts):
+                continue
+
+            yield path
 
     def _ensure_directories(self, dirs_by_relpath: dict[str, dict], root: dict, parent: Path) -> dict:
         if str(parent) in {"", "."}:
@@ -123,6 +144,9 @@ class RepoStructureService:
             "path": str(relative),
             "children": [],
         }
+
+        if source_file.suffix != ".py":
+            return file_node
 
         module_node = {
             "type": "module",

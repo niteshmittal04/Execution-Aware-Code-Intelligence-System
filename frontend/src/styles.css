@@ -377,6 +377,15 @@ textarea:focus {
   min-width: 140px;
 }
 
+.explanation-panel.form-panel > .btn {
+  width: 100%;
+  min-height: 42px;
+}
+
+.explanation-panel .explain-input {
+  min-height: 204px;
+}
+
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
