@@ -206,7 +206,7 @@ a {
 }
 
 .workspace-with-sidebar {
-  grid-template-columns: minmax(260px, 300px) 1fr;
+  grid-template-columns: minmax(380px, 500px) 1fr;
 }
 
 .workspace-no-sidebar {
