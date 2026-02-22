@@ -107,6 +107,13 @@ export async function getSessionStructure(sessionId, { signal } = {}) {
   return requestJson(`/session/structure?session_id=${encodeURIComponent(sessionId)}`, { signal });
 }
 
+export async function getSessionFileContent(sessionId, filePath, { signal } = {}) {
+  return requestJson(
+    `/session/file?session_id=${encodeURIComponent(sessionId)}&file_path=${encodeURIComponent(filePath)}`,
+    { signal }
+  );
+}
+
 export async function indexRepoBySession(sessionId, { repoUrl = null, branch = null, reindex = false, signal } = {}) {
   return requestJson('/index_repo', {
     method: 'POST',

@@ -13,6 +13,7 @@ const RepositoryInputPage = lazy(() => import('./pages/RepositoryInputPage'));
 const FunctionExplorerPage = lazy(() => import('./pages/FunctionExplorerPage'));
 const ExplanationViewerPage = lazy(() => import('./pages/ExplanationViewerPage'));
 const GraphViewerPage = lazy(() => import('./pages/GraphViewerPage'));
+const CodeViewerPage = lazy(() => import('./pages/CodeViewerPage'));
 
 function getSystemTheme() {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -72,7 +73,7 @@ function App() {
         <WorkspaceContainer
           isSidebarOpen={isSidebarOpen}
           onCloseSidebar={() => setIsSidebarOpen(false)}
-          sidebar={<RepositoryStructurePanel structure={repoStructure} />}
+          sidebar={<RepositoryStructurePanel structure={repoStructure} activeSessionId={activeSession?.session_id} />}
         >
           <Suspense fallback={<div className="panel app-loading">Loading page...</div>}>
             <Routes>
@@ -80,6 +81,7 @@ function App() {
               <Route path="/functions" element={<FunctionExplorerPage />} />
               <Route path="/explanation" element={<ExplanationViewerPage />} />
               <Route path="/graph" element={<GraphViewerPage />} />
+              <Route path="/code" element={<CodeViewerPage />} />
             </Routes>
           </Suspense>
         </WorkspaceContainer>

@@ -13,13 +13,16 @@ function getNodeIcon(nodeType) {
   return '•';
 }
 
-function NodeActions({ value }) {
+function NodeActions({ value, codeHref }) {
   const encoded = encodeURIComponent(value);
   return (
     <span className="node-actions">
       <Link to={`/functions?fn=${encoded}`} className="node-action-link">Explorer</Link>
       <Link to={`/graph?fn=${encoded}`} className="node-action-link">Graph</Link>
       <Link to={`/explanation?fn=${encoded}`} className="node-action-link">Explain</Link>
+      {codeHref ? (
+        <a href={codeHref} target="_blank" rel="noreferrer" className="node-action-link">Code</a>
+      ) : null}
     </span>
   );
 }
@@ -40,12 +43,18 @@ function StructureNode({
   parentPath = '',
   expandedNodePaths,
   onToggleNode,
+  activeSessionId,
 }) {
   const nodePath = parentPath ? `${parentPath}/${node.name}` : node.name;
   const children = Array.isArray(node.children) ? node.children : [];
   const hasChildren = children.length > 0;
   const isExpanded = expandedNodePaths.has(nodePath);
   const targetValue = node.type === 'file' ? (node.name || '').replace(/\.[^/.]+$/, '') : node.name;
+  const isFileNode = node.type === 'file';
+  const relativePath = typeof node.path === 'string' ? node.path : '';
+  const codeHref = activeSessionId && relativePath
+    ? `/code?session_id=${encodeURIComponent(activeSessionId)}&file_path=${encodeURIComponent(relativePath)}`
+    : '';
 
   return (
     <li className={`structure-node ${node.type}`}>
@@ -65,10 +74,14 @@ function StructureNode({
         )}
         <span className={`structure-node-label ${node.type}`}>
           <span className="structure-node-icon" aria-hidden="true">{getNodeIcon(node.type)}</span>
-          <span className="structure-node-name">{node.name}</span>
+          {isFileNode && codeHref ? (
+            <a href={codeHref} target="_blank" rel="noreferrer" className="structure-node-file-link">{node.name}</a>
+          ) : (
+            <span className="structure-node-name">{node.name}</span>
+          )}
         </span>
       </div>
-      {targetValue ? <NodeActions value={targetValue} /> : null}
+      {targetValue ? <NodeActions value={targetValue} codeHref={isFileNode ? codeHref : ''} /> : null}
       {hasChildren && isExpanded ? (
         <ul className="structure-tree-children" aria-label={nodePath}>
           {children.map((child, index) => (
@@ -78,6 +91,7 @@ function StructureNode({
               parentPath={nodePath}
               expandedNodePaths={expandedNodePaths}
               onToggleNode={onToggleNode}
+              activeSessionId={activeSessionId}
             />
           ))}
         </ul>
@@ -86,7 +100,7 @@ function StructureNode({
   );
 }
 
-function RepositoryStructurePanel({ structure }) {
+function RepositoryStructurePanel({ structure, activeSessionId }) {
   const allExpandablePaths = useMemo(() => {
     if (!structure) {
       return [];
@@ -143,6 +157,7 @@ function RepositoryStructurePanel({ structure }) {
           node={structure}
           expandedNodePaths={expandedNodePaths}
           onToggleNode={onToggleNode}
+          activeSessionId={activeSessionId}
         />
       </ul>
     </Panel>

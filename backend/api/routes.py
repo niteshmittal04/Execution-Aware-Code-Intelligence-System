@@ -212,3 +212,33 @@ def get_session_structure(session_id: str) -> dict:
         force_refresh=False,
     )
     return {"session_id": session_id, "repo_path": session.repo_path, "structure": structure}
+
+
+@router.get("/session/file")
+def get_session_file_content(session_id: str, file_path: str) -> dict:
+    services = get_services()
+    session = services["session_manager"].get_session(session_id)
+    if session is None:
+        raise HTTPException(status_code=404, detail="Session not found.")
+
+    try:
+        repo_root = Path(session.repo_path).resolve()
+        candidate = (repo_root / file_path).resolve()
+        candidate.relative_to(repo_root)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail="Invalid file path.") from exc
+
+    if not candidate.exists() or not candidate.is_file():
+        raise HTTPException(status_code=404, detail="File not found.")
+
+    try:
+        content = candidate.read_text(encoding="utf-8", errors="ignore")
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Failed to read file: {exc}") from exc
+
+    return {
+        "session_id": session_id,
+        "repo_path": str(repo_root),
+        "file_path": str(candidate.relative_to(repo_root)),
+        "content": content,
+    }
