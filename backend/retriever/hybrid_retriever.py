@@ -14,15 +14,15 @@ class HybridRetriever:
         self.vector_store = vector_store
         self.embedder = embedder
 
-    def retrieve(self, function_name: str, filters: dict | None = None) -> dict:
-        graph_nodes, graph_edges = self.graph_store.get_function_graph(function_name)
+    def retrieve(self, session_id: str, function_name: str, filters: dict | None = None) -> dict:
+        graph_nodes, graph_edges = self.graph_store.get_function_graph(session_id, function_name)
         semantic_hits: list[dict] = []
         try:
             vector_query = self.embedder.embed_text(function_name)
-            semantic_hits = self.vector_store.search(vector_query, filters=filters)
+            semantic_hits = self.vector_store.search(session_id, vector_query, filters=filters)
         except Exception:
             semantic_hits = []
-        variable_rows = self.graph_store.get_variables_for_scope(function_name)
+        variable_rows = self.graph_store.get_variables_for_scope(session_id, function_name)
         return {
             "graph_nodes": graph_nodes,
             "graph_edges": graph_edges,

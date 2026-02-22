@@ -1,0 +1,35 @@
+export const uiTokens = {
+  colors: {
+    bgBase: '#0B0F14',
+    bgSubtle: '#0F1620',
+    bgElevated: '#121A24',
+    panel: '#161F2B',
+    panelAlt: '#1B2635',
+    accent: '#3B82F6',
+    accentStrong: '#2563EB',
+    accentCyan: '#06B6D4',
+    accentCyanStrong: '#0891B2',
+    success: '#22C55E',
+    warning: '#F59E0B',
+    danger: '#EF4444',
+    textPrimary: '#E6EDF3',
+    textSecondary: '#9CA3AF',
+    textMuted: '#6B7280',
+    border: '#1F2937',
+  },
+  radius: {
+    sm: '8px',
+    md: '12px',
+    lg: '16px',
+  },
+  shadow: {
+    panel: '0 12px 24px rgba(3, 8, 20, 0.35)',
+    hover: '0 14px 28px rgba(3, 8, 20, 0.42)',
+    glow: '0 0 0 1px rgba(59, 130, 246, 0.35), 0 0 20px rgba(59, 130, 246, 0.24)',
+  },
+  motion: {
+    fast: 0.12,
+    normal: 0.18,
+    slow: 0.24,
+  },
+};

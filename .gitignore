@@ -8,6 +8,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
+*.pyc
 *.so
 *.egg
 *.egg-info/
@@ -58,3 +59,9 @@ tmp/
 temp/
 .cache/
 artifacts/
+
+# Runtime session artifacts
+data/sqlite/sessions.db
+data/graph_storage/
+data/cache/
+data/faiss/sessions/

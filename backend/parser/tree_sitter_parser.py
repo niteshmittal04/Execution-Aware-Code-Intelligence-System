@@ -69,7 +69,41 @@ class TreeSitterCodeParser:
             variables.extend(file_variables)
             chunks.extend(file_chunks)
 
+        self._resolve_call_edge_targets(symbols, edges)
+
         return symbols, edges, variables, chunks
+
+    def _resolve_call_edge_targets(self, symbols: list[ParsedSymbol], edges: list[ParsedEdge]) -> None:
+        symbol_ids = {item.id for item in symbols}
+        symbols_by_id = {item.id: item for item in symbols}
+        symbols_by_name: dict[str, list[ParsedSymbol]] = {}
+        symbols_by_file_and_name: dict[tuple[str, str], list[ParsedSymbol]] = {}
+
+        for symbol in symbols:
+            symbols_by_name.setdefault(symbol.name, []).append(symbol)
+            symbols_by_file_and_name.setdefault((symbol.file_path, symbol.name), []).append(symbol)
+
+        for edge in edges:
+            if edge.type != "calls":
+                continue
+            if edge.target in symbol_ids:
+                continue
+
+            source_symbol = symbols_by_id.get(edge.source)
+            same_file_candidates: list[ParsedSymbol] = []
+            if source_symbol is not None:
+                same_file_candidates = symbols_by_file_and_name.get(
+                    (source_symbol.file_path, edge.target),
+                    [],
+                )
+
+            if len(same_file_candidates) == 1:
+                edge.target = same_file_candidates[0].id
+                continue
+
+            global_candidates = symbols_by_name.get(edge.target, [])
+            if len(global_candidates) == 1:
+                edge.target = global_candidates[0].id
 
     def parse_file(
         self, file_path: Path

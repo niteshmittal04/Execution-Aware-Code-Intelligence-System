@@ -1,6 +1,9 @@
+import { memo } from 'react';
+import Panel from '../panel/Panel';
+
 function ListPanel({ title, count, items, emptyText }) {
   return (
-    <div className="panel">
+    <Panel>
       <h3 className="panel-heading">
         {title} <span>{count}</span>
       </h3>
@@ -13,8 +16,8 @@ function ListPanel({ title, count, items, emptyText }) {
           ))}
         </ul>
       )}
-    </div>
+    </Panel>
   );
 }
 
-export default ListPanel;
+export default memo(ListPanel);
