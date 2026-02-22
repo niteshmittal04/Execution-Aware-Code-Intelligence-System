@@ -1,173 +1,93 @@
-# Execution Aware RAG Code Explainer
+# Execution-Aware Code Intelligence System
 
-A local full-stack system that indexes source code, builds a lightweight execution graph, retrieves relevant semantic context, and generates function/snippet explanations using an MegLLM's LLM API.
+A full-stack system for repository indexing, execution-graph retrieval, and LLM-powered code explanation.
 
-## Problem This Application Solves
+It combines:
+- static code structure extraction (symbols, calls, imports, variables)
+- graph-backed relationship lookup
+- semantic retrieval with FAISS embeddings
+- optional external knowledge enrichment
+- explanation generation through an OpenAI-compatible API
 
-Understanding an unfamiliar codebase is slow because code intelligence is often split across multiple disconnected views:
+## Why this project
 
-- Source search gives text matches but not execution relationships.
-- Graph views show relationships but often miss semantic context.
-- LLM summaries can be generic when they do not have repository-aware grounding.
+Understanding large codebases is hard when context is split across tools.
 
-This project combines those pieces into one workflow:
+This project gives you one workflow:
+1. create a repo session
+2. index repository code
+3. retrieve graph + semantic context
+4. generate execution-aware explanations
+5. explore function graphs visually
 
-1. Parse repository code into symbols/calls/imports/variables.
-2. Store relationships in a graph store.
-3. Embed code and optional external knowledge into a vector store.
-4. Retrieve graph + semantic context together.
-5. Produce execution-aware explanations and graph visualizations in the UI.
+## Tech stack
 
-## What It Does
+- **Backend:** FastAPI, Pydantic, Tree-sitter, FAISS, SentenceTransformers, SQLite
+- **Frontend:** React + Vite
+- **Model API:** OpenAI-compatible chat completions endpoint
+- **Deployment:** Render blueprint via `render.yaml`
 
-- Indexes a Git repository URL (or local checked-out code after clone).
-- Builds and stores function/class nodes and call/import edges.
-- Tracks variable assignments by scope.
-- Creates semantic embeddings for code chunks.
-- Optionally enriches retrieval with external CSV knowledge.
-- Serves explanation and graph endpoints for a React frontend.
+## Repository structure
 
-## Architecture
-
-### Backend (FastAPI + Python)
-
-- **API Layer (`backend/api`)**
-	- Exposes endpoints for indexing, explanation, and graph retrieval.
-- **Service Assembly (`backend/services/service_factory.py`)**
-	- Initializes and wires parser, graph store, embedder, retriever, vector store, and LLM engine.
-- **Indexing Pipeline (`backend/services/indexing_service.py`)**
-	- Clones repo → parses files → persists graph/variables → embeds code/external chunks → persists vectors.
-- **Parser (`backend/parser/tree_sitter_parser.py`)**
-	- Uses Tree-sitter Python grammar to extract symbols, call edges, import edges, and variable assignments.
-- **Graph Store (`backend/graph/sqlite_graph.py`)**
-	- Uses SQLite for nodes, edges, and variables, with configurable traversal depth for graph queries.
-- **Embedding (`backend/embeddings/minilm_embedder.py`)**
-	- Uses SentenceTransformers (`all-MiniLM-L6-v2` by default) with retry logic.
-- **Vector Store (`backend/vector/faiss_store.py`)**
-	- Uses FAISS (cosine via normalized inner product), stores metadata JSON sidecar, supports filtering + reranking.
-- **Retriever (`backend/retriever/hybrid_retriever.py`)**
-	- Combines graph neighborhood + semantic similarity hits + scoped variables.
-- **LLM Engine (`backend/llm/explanation_engine.py`)**
-	- Calls OpenAI-compatible chat completions API and returns structured explanation fields.
-
-### Frontend (React + Vite)
-
-- **Repository Input page**: submit repo URL/branch for indexing.
-- **Function Explorer page**: load graph summary for target function.
-- **Explanation Viewer page**: explain function or raw snippet.
-- **Graph Viewer page**: render graph with React Flow.
-- **Client API module (`frontend/src/api.js`)**: centralized REST calls and graph cache.
-
-### Storage and Data Assets
-
-- **SQLite**: execution graph (`nodes`, `edges`, `variables`).
-- **FAISS + metadata JSON**: semantic vectors and retrievable chunk metadata.
-- **Cloned repos**: local working copies under `data/repos/`.
-- **Optional external KB**: `rag_kb_dataset.csv` ingested as additional retrievable knowledge.
-
-## End-to-End Tech Stack Flow
-
-### A) Repository Indexing Flow
-
-1. Frontend calls `POST /index_repo` with repository URL.
-2. Backend clones repository into configured clone directory.
-3. Tree-sitter parser scans allowed file extensions (default `.py`) and extracts:
-	 - symbols (functions/classes/modules)
-	 - call relationships
-	 - import relationships
-	 - variable assignments with scope
-4. Parser creates text chunks from file content (size/overlap configurable).
-5. Graph store upserts nodes/edges/variables into SQLite.
-6. Embedder generates embeddings for chunks.
-7. FAISS store inserts vectors and persists both index + metadata.
-8. If external knowledge is enabled, CSV/docs chunks are also embedded and inserted.
-
-### B) Function Explanation Flow
-
-1. Frontend calls `POST /explain_function` with `function_name`.
-2. Hybrid retriever runs:
-	 - graph traversal for related nodes/edges
-	 - vector similarity search for semantic hits
-	 - variable lookup for matching scope
-3. Combined context is passed to LLM engine prompt builder.
-4. LLM engine calls configured OpenAI-compatible endpoint.
-5. API returns structured explanation payload:
-	 - summary
-	 - execution_flow
-	 - dependencies
-	 - variables
-	 - improvements
-	 - confidence_score
-
-### C) Snippet Explanation Flow
-
-1. Frontend calls `POST /explain_snippet` with code + language.
-2. Backend sends truncated snippet context to LLM endpoint.
-3. API returns the same structured explanation format.
-
-### D) Graph Visualization Flow
-
-1. Frontend calls `GET /graph/{function_name}`.
-2. Backend retrieves function-centric graph from SQLite.
-3. Frontend transforms graph response into React Flow elements.
-4. User explores execution relationships visually.
-
-## Project Structure
-
-```
-project/
-├── backend/
-│   ├── api/
-│   ├── parser/
-│   ├── graph/
-│   ├── embeddings/
-│   ├── retriever/
-│   ├── llm/
-│   ├── vector/
-│   ├── services/
-│   ├── config/
-│   └── main.py
-├── frontend/
-│   ├── src/
-│   └── package.json
-├── data/
-│   ├── faiss/
-│   ├── sqlite/
-│   └── repos/
-├── rag_kb_dataset.csv
-├── .env
-└── .env.example
+```text
+backend/
+  api/
+  config/
+  embeddings/
+  graph/
+  llm/
+  parser/
+  repository/
+  retriever/
+  services/
+  vector/
+  main.py
+frontend/
+  src/
+  package.json
+data/
+  cache/
+  faiss/
+  graph_storage/
+  repos/
+  sqlite/
+rag_kb_dataset.csv
+render.yaml
 ```
 
-## Backend Setup
+## Quick start (local)
 
-1. Create a Python 3.11+ environment.
-2. Install dependencies:
+### 1) Backend setup
 
 ```bash
 cd backend
+python -m venv .venv
+.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-3. Configure environment:
+Create a `.env` file at the repository root (same level as `backend/` and `frontend/`) and set at least:
 
-```bash
-copy .env.example .env
+```env
+MEGALLM_API_KEY=your_key
+LLM_BASE_URL=https://ai.megallm.io/v1
+LLM_MODEL=claude-sonnet-4-5-20250929|
+LLM_API_KEY_ENV_VAR=MEGALLM_API_KEY
 ```
 
-Then set at least:
-
-- `MEGALLM_API_KEY` (or env var named by `LLM_API_KEY_ENV_VAR`)
-- `LLM_BASE_URL`
-- `LLM_MODEL`
-
-4. Run backend:
+Run API:
 
 ```bash
 uvicorn backend.main:app --reload --port 8000
 ```
 
-## Frontend Setup
+Health check:
+
+```bash
+curl http://localhost:8000/health
+```
+
+### 2) Frontend setup
 
 ```bash
 cd frontend
@@ -175,37 +95,98 @@ npm install
 npm run dev
 ```
 
-Optional API base URL override:
+Optional API URL override:
 
 ```bash
 set VITE_API_BASE_URL=http://localhost:8000
 ```
 
-## Key Environment Variables
+## Core API flow
 
-- `EMBEDDING_MODEL` (default `sentence-transformers/all-MiniLM-L6-v2`)
-- `FAISS_INDEX_PATH`, `FAISS_METADATA_PATH`
+The API is **session-based**.
+
+1. Create (or switch) session for a repo path/URL.
+2. Index repository into graph + vector storage.
+3. Explain function/snippet and fetch graph.
+
+### Example flow
+
+```bash
+# 1) Create session from local path
+curl -X POST http://localhost:8000/session/create \
+  -H "Content-Type: application/json" \
+  -d "{\"repo_path\":\"D:/Execution Aware Code Intelligence System\"}"
+
+# 2) Index repository
+curl -X POST http://localhost:8000/index_repo \
+  -H "Content-Type: application/json" \
+  -d "{\"session_id\":\"<SESSION_ID>\",\"reindex\":false}"
+
+# 3) Explain a function
+curl -X POST http://localhost:8000/explain_function \
+  -H "Content-Type: application/json" \
+  -d "{\"session_id\":\"<SESSION_ID>\",\"function_name\":\"index_repository\"}"
+```
+
+## API endpoints
+
+### General
+- `GET /health`
+
+### Session management
+- `POST /session/create`
+- `POST /session/switch`
+- `POST /session/close`
+- `POST /session/reset`
+- `GET /session/active`
+- `GET /session/structure?session_id=<id>`
+
+### Indexing and retrieval
+- `POST /index_repo`
+- `POST /seed_external_kb`
+- `POST /explain_function`
+- `POST /explain_snippet`
+- `GET /graph/{function_name}?session_id=<id>`
+- `GET /graph/stats?session_id=<id>[&function_name=<name>]`
+
+## Key environment variables
+
+- `EMBEDDING_MODEL` (default: `sentence-transformers/all-MiniLM-L6-v2`)
+- `FAISS_INDEX_PATH`, `FAISS_METADATA_PATH`, `FAISS_SEARCH_LIMIT`, `FAISS_SEARCH_METRIC`
 - `SQLITE_PATH`
-- `INDEXING_INCLUDE_EXTENSIONS` (default `.py`)
-- `INDEXING_CHUNK_SIZE`, `INDEXING_CHUNK_OVERLAP`
+- `INDEXING_BATCH_SIZE`, `INDEXING_CHUNK_SIZE`, `INDEXING_CHUNK_OVERLAP`
+- `INDEXING_MAX_FILE_BYTES`, `INDEXING_INCLUDE_EXTENSIONS`, `INDEXING_MAX_WORKERS`
 - `GRAPH_TRAVERSAL_DEPTH`, `GRAPH_PAGE_SIZE`
-- `EXTERNAL_KNOWLEDGE_ENABLED`
-- `EXTERNAL_KNOWLEDGE_CSV_PATH`
+- `GITHUB_CLONE_DIR`, `GITHUB_CLONE_TIMEOUT_SECONDS`
+- `RUNTIME_REQUEST_TIMEOUT_SECONDS`, `RUNTIME_RETRY_ATTEMPTS`
+- `EXTERNAL_KNOWLEDGE_ENABLED`, `EXTERNAL_KNOWLEDGE_CSV_PATH`
+- `EXTERNAL_KNOWLEDGE_DOCS_URLS`, `EXTERNAL_KNOWLEDGE_STACKOVERFLOW_TAGS`, `EXTERNAL_KNOWLEDGE_GITHUB_ISSUE_REPOS`
 
-## External Knowledge Dataset (CSV)
+## External knowledge (optional)
 
-To enable CSV-backed retrieval enrichment:
+To enrich retrieval using CSV/docs/other external sources:
 
 1. Set `EXTERNAL_KNOWLEDGE_ENABLED=true`
 2. Set `EXTERNAL_KNOWLEDGE_CSV_PATH=./rag_kb_dataset.csv`
+3. Call `POST /seed_external_kb` with `session_id`
 
-CSV rows are ingested with metadata such as source type, domain, library, relevance label, votes/stars, and difficulty level. Retrieval supports optional metadata filtering (for example: `source_type`, `domain`, `difficulty_level`, `library`).
+## Deploy on Render
 
-## API Endpoints
+This repo includes `render.yaml` with:
+- `execution-aware-backend` (FastAPI web service)
+- `execution-aware-frontend` (Vite static site)
 
-- `POST /index_repo`
-- `POST /seed_external_kb` (seeds external KB only when vector DB is empty)
-- `POST /explain_function`
-- `POST /explain_snippet`
-- `GET /graph/{function_name}`
-- `GET /health`
+### Deploy steps
+
+1. Push repository to GitHub.
+2. In Render, create a new **Blueprint** deployment.
+3. Select the repository and deploy.
+4. Set `MEGALLM_API_KEY` in backend environment variables.
+
+If backend URL differs from the default, update frontend `VITE_API_BASE_URL` and redeploy.
+
+## Notes
+
+- Default indexing target extensions: `.py`
+- CORS is currently open (`allow_origins=["*"]`) for development convenience
+- Existing `data/` directories are used for persisted graph/vector/session artifacts
